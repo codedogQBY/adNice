@@ -201,7 +201,7 @@ export default function IndexPage() {
   return (
     <>
       {
-        false ?
+        noLogin ?
           <div className="login">
             <Form
               name="normal_login"
