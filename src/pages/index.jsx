@@ -1,5 +1,5 @@
 import { LockOutlined } from '@ant-design/icons';
-import { Button, Card, Form, Input, InputNumber, message } from 'antd';
+import { Button, Card, Form, Input, InputNumber, message, Spin } from 'antd';
 import React, { useState } from 'react';
 import Excel from './Excle';
 import exportExcel from './exportExcel';
@@ -12,19 +12,27 @@ export default function IndexPage() {
   const [isOut, setIsOut] = useState(false) // 是否可以导出
   const [isUp, setIsUp] = useState(false) // 是否可以计算
   const [minP1, setMinP1] = useState(2000) // 2000下限
-  const [maxP1, setMaxP1] = useState(2100) // 2000上限
+  const [maxP1, setMaxP1] = useState(2020) // 2000上限
   const [minP2, setMinP2] = useState(1000)
-  const [maxP2, setMaxP2] = useState(1050)
+  const [maxP2, setMaxP2] = useState(1010)
   const [dataSource, setDataSource] = useState([]) // 数据源
+  const [unS, SetUnS] = useState([])
   const [columns, setColumns] = useState([])
   const [noLogin, setLogin] = useState(true) // 是否登录
+  const [isLoading, setIsLoading] = useState(false) // 是否加载
+
+  // 上一步下一步功能
+  const [index,setIndex] = useState(-1)
+  const [allArr,setAllArr] = useState([])
 
   const getData = data => {
     let res = JSON.parse(JSON.stringify(data))
-    res = res.map(item=>{
+
+    res = res.map(item => {
       item['原价'] = item['原价'] + ''
       return item
     })
+
     setIsUp(true)
     setData(res)
   }
@@ -57,6 +65,42 @@ export default function IndexPage() {
     }, [])
     return UnUseArr
   }
+
+  const toCount = () => {
+    let { columns, res } = handleClick()
+    setIsLoading(true)
+    setTimeout(()=>{
+      for (let i = 0; i < 1000; i++) {
+        let { columns: c, res: r } = handleClick()
+        if (r.length > res.length) {
+          columns = c
+          res = r
+        }
+      }
+      setIsLoading(false)
+      setColumns(columns)
+      setDataSource(res)
+      setIsOut(true)
+      setAllArr(allArr.concat([{res,columns}]))
+      setIndex(allArr.length)
+    },0)
+  }
+
+  const preStep = ()=>{
+    let i = index - 1
+    let {columns, res} = allArr[i]
+    setColumns(columns)
+    setDataSource(res)
+    setIndex(i)
+  }
+  const nextStep =()=>{
+    let i = index + 1
+    let {columns, res} = allArr[i]
+    setColumns(columns)
+    setDataSource(res)
+    setIndex(i)
+  }
+
 
   const handleClick = () => {
     let result = data.map(item => {
@@ -127,9 +171,7 @@ export default function IndexPage() {
       }
     }
 
-    setColumns(columns)
-    setDataSource(res)
-    setIsOut(true)
+    return { columns, res, unUse }
   }
 
   function onChange1(value) {
@@ -188,52 +230,65 @@ export default function IndexPage() {
             </Form>
           </div>
           :
-          <div className="main">
-            <div className="tip">
-              <Card style={{ width: 250, background: "rgba(255,255,255,0.5)" }}>
-                <p>
-                  请注意导入的文件必须为excle表格，且表格中必须包含数量与原价两列，如上传失败，请检查是否为excle文件；如计算失败，请检查导入文件是否包含数量与原价两列。
-                </p>
-              </Card>
+          <Spin spinning={isLoading} tip="计算中...">
+            <div className="main">
+              <div className="tip">
+                <Card style={{ width: 250, background: "rgba(255,255,255,0.5)" }}>
+                  <p>
+                    请注意导入的文件必须为excle表格，且表格中必须包含数量与原价两列，如上传失败，请检查是否为excle文件；如计算失败，请检查导入文件是否包含数量与原价两列。
+                  </p>
+                </Card>
+              </div>
+              <Excel getData={getData}>
+                <div style={{ marginLeft: "30px" }}>{(isUp ? "已上传" : "未上传") + "文件"}</div>
+              </Excel>
+              <Button onClick={toCount} disabled={!isUp} className="calculate">计算</Button>
+              <Button
+                type="primary"
+                onClick={() => exportExcel(columns, dataSource)}
+                className="output"
+                disabled={!isOut}
+              >
+                导出文件
+              </Button>
+              <div style={{ width: "100%" }} className="numInput">
+                <span className="lable">第一个范围：</span>
+                <InputNumber
+                  defaultValue={minP1}
+                  onChange={onChange1}
+                />
+                <InputNumber
+                  defaultValue={maxP1}
+                  onChange={onChange2}
+                />
+              </div>
+              <div style={{ width: "100%" }} className="numInput">
+                <span className="lable">第二个范围：</span>
+                <InputNumber
+                  defaultValue={minP2}
+                  onChange={onChange3}
+                />
+                <InputNumber
+                  defaultValue={maxP2}
+                  onChange={onChange4}
+                />
+              </div>
+              <div style={{ width: "100%" }} className="numInput">
+                <span className="lable">步骤：</span>
+                <Button
+                disabled={allArr.length === 0 || index <= 0}
+                onClick={preStep}
+                >上一步</Button>
+                <Button
+                disabled={allArr.length === 0 || index >= allArr.length-1}
+                onClick={nextStep}
+                >下一步</Button>
+              </div>
+              <div className="table">
+                <ShowTable columns={columns} dataSource={dataSource}></ShowTable>
+              </div>
             </div>
-            <Excel getData={getData}>
-              <div style={{ marginLeft: "30px" }}>{(isUp ? "已上传" : "未上传") + "文件"}</div>
-            </Excel>
-            <Button onClick={handleClick} disabled={!isUp} className="calculate">计算</Button>
-            <Button
-              type="primary"
-              onClick={() => exportExcel(columns, dataSource)}
-              className="output"
-              disabled={!isOut}
-            >
-              导出文件
-            </Button>
-            <div style={{ width: "100%" }} className="numInput">
-              <span className="lable">第一个范围：</span>
-              <InputNumber
-                defaultValue={minP1}
-                onChange={onChange1}
-              />
-              <InputNumber
-                defaultValue={maxP1}
-                onChange={onChange2}
-              />
-            </div>
-            <div style={{ width: "100%" }} className="numInput">
-              <span className="lable">第二个范围：</span>
-              <InputNumber
-                defaultValue={minP2}
-                onChange={onChange3}
-              />
-              <InputNumber
-                defaultValue={maxP2}
-                onChange={onChange4}
-              />
-            </div>
-            <div className="table">
-              <ShowTable columns={columns} dataSource={dataSource}></ShowTable>
-            </div>
-          </div>}
+          </Spin>}
     </>
   );
 }

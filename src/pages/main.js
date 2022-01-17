@@ -61,7 +61,7 @@ const dp = (goods, minPrice, maxPrice) => {
       arr1.push(goods[i].price);
     }
   }
-  arr1.sort((a, b) => b - a);
+  arr1.sort((a, b) =>  Math.random()-0.5);
   fun3(arr1);
 
   const sum = (arr) => {

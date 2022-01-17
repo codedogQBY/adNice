@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Button, message } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
+import { Button, message } from 'antd';
+import React from 'react';
 import * as XLSX from 'xlsx';
 import styles from './index.less';
 
@@ -38,12 +38,11 @@ const Excel = ({getData,children})=>{
     };
     // 以二进制方式打开文件
     fileReader.readAsBinaryString(files[0]);
-    
   }
     return (
       <div className={styles['upload']}>
         <Button className={styles['upload-wrap']} icon={<UploadOutlined />}>
-          <input className={styles['file-uploader']}  type='file' accept='.xlsx, .xls' onChange={onImportExcel}/>
+          <input className={styles['file-uploader']}  type='file' accept='.xlsx, .xls' onInput={onImportExcel} onClick={(event)=> { event.target.value = null }} />
         </Button>
         <p className={styles['upload-tip']}>点击上传文件价格表，格式为.xlsx</p>
         {children}
